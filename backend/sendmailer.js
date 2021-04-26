@@ -1,34 +1,33 @@
 const nodemailer = require("nodemailer");
+
+const smtpTransport = require('nodemailer-smtp-transport');
 const Contact = require("./app/models/contact");
-
-const sendMail = async (req, res) => {
-  const { email, subject, text } = req.body;
-  const findUser = Contact.find({ email: email });
-
-  if (!findUser) return res.json({ message: "aucune donnée trouvée" });
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
+const transporter = nodemailer.createTransport(
+  smtpTransport({
+    host: 'smtp.gmail.com',
     auth: {
+      type: 'custom',
       user: "harzafi55@gmail.com",
       pass: "walid1711.",
     },
-  });
-
-  const mailOptions = {
-    from: "harzafi55@gmail.com",
-    to: email,
-    subject: subject,
-    text: text,
-  };
+  })
+);
+const sendMail = async (req, res) => {
+  const { id } = req.params;
+  const { message } = req.body;
+  // console.log(message);
   try {
-    await transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Email sent: " + info.response);
-      }
-    });
-    return res.json({ message: "email send" });
+    const currentContact = await Contact.findOne({ _id: id });
+    if (currentContact) {
+      const mailOptions = {
+        from: "harzafi55@gmail.com",
+        to: currentContact.email,
+        subject: 'Mail',
+        text: message,
+      };
+      const envoiMail = await transporter.sendMail(mailOptions);
+      if (envoiMail) res.status(200).json('Mail sent');
+    }
   } catch (error) {
     res.json({ error: error });
   }
